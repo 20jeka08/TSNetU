@@ -56,7 +56,7 @@ def quasi_steady_friction_factor(Re, KD):
     return f
 
 
-def unsteady_friction(Re, dVdt, dVdx, V, a, g):
+def unsteady_friction(Re, dVdt, dVdx, V, a, g, dt):
     """ Calculate unsteady friction
 
     Parameters
@@ -73,7 +73,8 @@ def unsteady_friction(Re, dVdt, dVdx, V, a, g):
         wave speed
     g: float
         gravitational acceleration
-
+    dt: float
+        time step, [s]
     Returns
     -------
     Ju : float
@@ -89,7 +90,8 @@ def unsteady_friction(Re, dVdt, dVdx, V, a, g):
     # calculate Brunone's friction coefficient
     k = np.sqrt(C)/2.
     " TO DO: check the sign of unsteady friction"
-    Ju = k/g/2.* (dVdt + a* np.sign(V) * np.abs(dVdx))
+    dt_norm = dt*16.0 # empirical coefficient based experiment articles for timestep independence (increasing stability)
+    Ju = dt_norm*k/g/2.* (dVdt + a* np.sign(V) * np.abs(dVdx))
     return Ju
 
 def cal_friction(friction, f, D, V, KD, dt, dVdt, dVdx, a, g ):
@@ -139,7 +141,7 @@ def cal_friction(friction, f, D, V, KD, dt, dVdt, dVdx, a, g ):
         if friction == 'quasi-steady':
             Ju = 0
         elif friction == 'unsteady':
-            Ju = unsteady_friction(Re, dVdt, dVdx, V, a, g)
+            Ju = unsteady_friction(Re, dVdt, dVdx, V, a, g, dt)
     return Ju + Js
 
 def cal_Cs( link1, link2, H1, V1, H2, V2, s1, s2, g, dt,
@@ -284,7 +286,7 @@ def inner_node_unsteady(link, H0, V0, dt, g, dVdx, dVdt):
         else:
             f = quasi_steady_friction_factor(Re, KD)
             Js = f*dt/2./D*V1*abs(V1)
-        Ju = unsteady_friction(Re, dVdt1, dVdx1, V1, a, g)
+        Ju = unsteady_friction(Re, dVdt1, dVdx1, V1, a, g, dt)
         J1 = Js +Ju
         C[0,0] = V1 + ga*H1 - J1 + ga* dt *V1*theta
 
@@ -294,7 +296,7 @@ def inner_node_unsteady(link, H0, V0, dt, g, dVdx, dVdt):
         else:
             f = quasi_steady_friction_factor(Re, KD)
             Js = f*dt/2./D*V2*abs(V2)
-        Ju = unsteady_friction(Re, dVdt2, dVdx2, V2, a, g)
+        Ju = unsteady_friction(Re, dVdt2, dVdx2, V2, a, g, dt)
         J2 = Js +Ju
         C[1,0] = -V2+ ga*H2 + J2 + ga* dt *V2*theta
 
